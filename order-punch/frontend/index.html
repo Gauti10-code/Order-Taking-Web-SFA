@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Punching System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      🥛 Order Punch
+      <span>Fresh Division</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-page="orders" onclick="showPage('orders')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        Order Entry
+      </a>
+      <a class="nav-item" data-page="history" onclick="showPage('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+      </a>
+      <a class="nav-item" data-page="admin-dist" id="nav-dist" onclick="showPage('admin-dist')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M2 21v-2a8 8 0 0116 0v2"/></svg>
+        Distributors
+      </a>
+      <a class="nav-item" data-page="admin-sku" id="nav-sku" onclick="showPage('admin-sku')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3l-4 4-4-4"/></svg>
+        Products / SKUs
+      </a>
+      <a class="nav-item" data-page="export" id="nav-export" onclick="showPage('export')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </a>
+      <a class="nav-item" data-page="user-assign" id="nav-user-assign" onclick="showPage('user-assign')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="23" y2="12"/><line x1="23" y1="8" x2="19" y2="12"/></svg>
+        User Assignments
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <strong id="user-name">—</strong>
+        <span id="user-role-badge"></span>
+      </div>
+      <button class="btn btn-outline" style="width:100%;color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.3);font-size:12px" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- ── Order Entry Page ───────────────────────────────────────────── -->
+    <div class="page active" id="page-orders">
+      <div class="page-title">Order Entry</div>
+      <div class="page-subtitle">Enter quantities per SKU × Distributor for today's orders</div>
+
+      <div class="grid-toolbar">
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px;margin:0">
+          <label style="white-space:nowrap;font-size:13px;font-weight:500">Order Date</label>
+          <input type="date" id="order-date" style="width:160px" onchange="loadGrid()">
+        </div>
+        <button class="btn btn-success" onclick="saveOrders()" id="save-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+          Save Orders
+        </button>
+        <span class="text-muted" id="last-saved"></span>
+        <span style="margin-left:auto;display:flex;gap:12px;align-items:center;font-size:12px;color:var(--text-muted)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:#fde8e8;border:1px solid #f5b7b1;display:inline-block"></span> Revised</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:14px;border-radius:3px;background:#6b3a2a;display:inline-block"></span> New</span>
+        </span>
+      </div>
+
+      <div class="grid-container" id="grid-container">
+        <div style="padding:40px;text-align:center;color:var(--text-muted)">Loading grid…</div>
+      </div>
+    </div>
+
+    <!-- ── Distributors Page ──────────────────────────────────────────── -->
+    <div class="page" id="page-admin-dist">
+      <div class="page-title">Distributors</div>
+      <div class="page-subtitle">Manage distributor master data</div>
+      <div class="card">
+        <div class="card-header">
+          <h2>All Distributors</h2>
+          <button class="btn btn-primary btn-sm ml-auto" onclick="openModal('modal-dist')">+ Add Distributor</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table" id="dist-table">
+            <thead><tr><th>Code</th><th>Name</th><th>Actions</th></tr></thead>
+            <tbody id="dist-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Products Page ──────────────────────────────────────────────── -->
+    <div class="page" id="page-admin-sku">
+      <div class="page-title">Products / SKUs</div>
+      <div class="page-subtitle">Manage product master data</div>
+      <div class="card">
+        <div class="card-header">
+          <h2>All Products</h2>
+          <button class="btn btn-primary btn-sm ml-auto" onclick="openModal('modal-sku')">+ Add Product</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table" id="sku-table">
+            <thead><tr><th>Code</th><th>Name</th><th>Actions</th></tr></thead>
+            <tbody id="sku-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Export Page ────────────────────────────────────────────────── -->
+    <div class="page" id="page-export">
+      <div class="page-title">Export Orders</div>
+      <div class="page-subtitle">Download order data as Excel</div>
+      <div class="card" style="max-width:480px">
+        <div class="card-header"><h2>Download Orders</h2></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+          <div class="form-group">
+            <label>Order Date</label>
+            <input type="date" id="export-date">
+          </div>
+          <button class="btn btn-success" onclick="exportOrders()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── History Page ──────────────────────────────────────────────── -->
+    <div class="page" id="page-history">
+      <div class="page-title">Order History</div>
+      <div class="page-subtitle">Audit trail — every save that changed a value is recorded here</div>
+      <div class="grid-toolbar">
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px;margin:0">
+          <label style="white-space:nowrap;font-size:13px;font-weight:500">Date</label>
+          <input type="date" id="history-date" style="width:160px">
+        </div>
+        <button class="btn btn-primary" onclick="loadHistory()">Load History</button>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>Time</th><th>Product</th><th>Distributor</th>
+              <th style="text-align:center">Old Qty</th>
+              <th style="text-align:center">New Qty</th>
+              <th>Changed By</th><th>Action</th>
+            </tr></thead>
+            <tbody id="history-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">Select a date and click Load History</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── User Assignments Page ─────────────────────────────────────── -->
+    <div class="page" id="page-user-assign">
+      <div class="page-title">User Assignments</div>
+      <div class="page-subtitle">Control which distributors each sales person can see and enter orders for</div>
+      <div class="card">
+        <div class="card-header"><h2>Sales Team</h2></div>
+        <div class="card-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Assigned Distributors</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── Distributor Modal ───────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-dist">
+  <div class="modal">
+    <h3 id="dist-modal-title">Add Distributor</h3>
+    <input type="hidden" id="dist-edit-id">
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Distributor Code</label>
+      <input type="text" id="dist-code" placeholder="e.g. D001">
+    </div>
+    <div class="form-group">
+      <label>Distributor Name</label>
+      <input type="text" id="dist-name" placeholder="e.g. Raj Enterprises">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-dist')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDist()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Product Modal ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-sku">
+  <div class="modal">
+    <h3 id="sku-modal-title">Add Product</h3>
+    <input type="hidden" id="sku-edit-id">
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Product Code</label>
+      <input type="text" id="sku-code" placeholder="e.g. SKU001">
+    </div>
+    <div class="form-group">
+      <label>Product Name</label>
+      <input type="text" id="sku-name" placeholder="e.g. Gowardhan Ghee 1L">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-sku')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSku()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── User Assignment Modal ───────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modal-assign">
+  <div class="modal" style="width:500px;max-width:95vw">
+    <h3>Assign Distributors — <span id="assign-user-name"></span></h3>
+    <input type="hidden" id="assign-user-id">
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Check the distributors this person should see in the order grid.</p>
+    <div id="assign-checklist" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;border:1px solid var(--border);border-radius:var(--radius);padding:10px"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-assign')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAssignment()">Save Assignments</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/utils.js"></script>
+<script>
+  // ── Init ────────────────────────────────────────────────────────────────
+  if (!requireAuth()) throw new Error("not authed");
+
+  const role = getRole();
+  document.getElementById("user-name").textContent = getName();
+  document.getElementById("user-role-badge").innerHTML =
+    `<span class="badge badge-${role}">${role}</span>`;
+
+  // Show admin nav items
+  if (role === "admin") {
+    ["nav-dist","nav-sku","nav-export","nav-user-assign"].forEach(id => {
+      document.getElementById(id).style.display = "flex";
+    });
+  }
+
+  // Set today's date
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("order-date").value = today;
+  document.getElementById("export-date").value = today;
+  document.getElementById("history-date").value = today;
+
+  // Load initial data
+  let distributors = [], products = [], currentOrders = {}, changeMap = {};
+
+  async function init() {
+    await Promise.all([loadGrid()]);
+    if (role === "admin") {
+      loadDists();
+      loadSkus();
+      loadUsers();
+    }
+  }
+
+  // ── Order Grid ──────────────────────────────────────────────────────────
+  async function loadGrid() {
+    const date = document.getElementById("order-date").value;
+    const container = document.getElementById("grid-container");
+    container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Loading…</div>`;
+
+    const [distRes, prodRes, ordersRes, historyRes] = await Promise.all([
+      apiFetch("/distributors"),
+      apiFetch("/products"),
+      apiFetch(`/orders?order_date=${date}`),
+      apiFetch(`/orders/history?order_date=${date}`)
+    ]);
+
+    if (!distRes || !prodRes) return;
+
+    distributors = await distRes.json();
+    products     = await prodRes.json();
+    const orders = ordersRes ? await ordersRes.json() : [];
+
+    // Build lookup: dist_id-product_id → quantity
+    currentOrders = {};
+    orders.forEach(o => { currentOrders[`${o.dist_id}-${o.product_id}`] = o.quantity; });
+
+    // Build change map for cell highlighting
+    // 'updated' (green) takes priority over 'created' (yellow)
+    changeMap = {};
+    const historyRows = historyRes ? await historyRes.json() : [];
+    historyRows.forEach(h => {
+      const key = `${h.dist_id}-${h.product_id}`;
+      if (h.action === 'updated') changeMap[key] = 'updated';
+      else if (!changeMap[key])   changeMap[key] = 'created';
+    });
+
+    if (!distributors.length || !products.length) {
+      const msg = !distributors.length
+        ? (role === "admin" ? "No distributors added yet." : "No distributors assigned to you — contact admin.")
+        : "No products found. Ask admin to add products.";
+      container.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">${msg}</div>`;
+      return;
+    }
+
+    renderGrid(container);
+  }
+
+  function renderGrid(container) {
+    const table = document.createElement("table");
+    table.className = "order-table";
+
+    // Header row
+    const thead = table.createTHead();
+    const hRow  = thead.insertRow();
+    const th0   = document.createElement("th");
+    th0.className = "sku-header";
+    th0.textContent = "SKU / Product";
+    hRow.appendChild(th0);
+
+    distributors.forEach(d => {
+      const th = document.createElement("th");
+      th.innerHTML = `<div>${d.code}</div><div style="font-weight:400;font-size:11px;opacity:0.85">${d.name}</div>`;
+      hRow.appendChild(th);
+    });
+
+    const thTotal = document.createElement("th");
+    thTotal.textContent = "Row Total";
+    hRow.appendChild(thTotal);
+
+    // Body
+    const tbody = table.createTBody();
+    products.forEach(p => {
+      const row = tbody.insertRow();
+
+      const skuCell = row.insertCell();
+      skuCell.className = "sku-cell";
+      skuCell.innerHTML = `<div>${p.name}</div><div class="sku-code">${p.code}</div>`;
+
+      let rowTotal = 0;
+
+      distributors.forEach(d => {
+        const cell = row.insertCell();
+        const qty  = currentOrders[`${d.id}-${p.id}`] || 0;
+        if (qty) rowTotal += qty;
+
+        const inp = document.createElement("input");
+        inp.type        = "number";
+        inp.min         = "0";
+        inp.className   = "qty-input";
+        inp.value       = qty || "";
+        inp.placeholder = "0";
+        inp.dataset.distId  = d.id;
+        inp.dataset.prodId  = p.id;
+
+        const state = changeMap[`${d.id}-${p.id}`];
+        if (state === 'updated') cell.classList.add('cell-revised');
+        else if (state === 'created') cell.classList.add('cell-new');
+
+        inp.addEventListener("input", () => updateRowTotal(row));
+        inp.addEventListener("keydown", e => {
+          if (e.key === "Tab") return; // default tab
+          if (e.key === "Enter") {
+            // Move down one row in same column
+            const allInputs = [...table.querySelectorAll(".qty-input")];
+            const idx = allInputs.indexOf(inp);
+            const nextIdx = idx + distributors.length; // next row, same dist column
+            if (allInputs[nextIdx]) { e.preventDefault(); allInputs[nextIdx].focus(); }
+          }
+        });
+        cell.appendChild(inp);
+      });
+
+      const totalCell = row.insertCell();
+      totalCell.className = "row-total-cell";
+      totalCell.textContent = rowTotal || "";
+    });
+
+    container.innerHTML = "";
+    container.appendChild(table);
+  }
+
+  function updateRowTotal(row) {
+    const inputs = row.querySelectorAll(".qty-input");
+    let total = 0;
+    inputs.forEach(i => { total += parseInt(i.value) || 0; });
+    const last = row.cells[row.cells.length - 1];
+    last.textContent = total || "";
+  }
+
+  async function saveOrders() {
+    const date = document.getElementById("order-date").value;
+    const inputs = document.querySelectorAll(".qty-input");
+    const entries = [];
+
+    inputs.forEach(inp => {
+      const qty = parseInt(inp.value) || 0;
+      if (qty > 0) {
+        entries.push({
+          dist_id:    parseInt(inp.dataset.distId),
+          product_id: parseInt(inp.dataset.prodId),
+          quantity:   qty,
+          order_date: date
+        });
+      }
+    });
+
+    const btn = document.getElementById("save-btn");
+    btn.disabled = true; btn.textContent = "Saving…";
+
+    const res = await apiFetch("/orders/bulk", {
+      method: "POST",
+      body: JSON.stringify({ entries, order_date: date })
+    });
+
+    btn.disabled = false; btn.textContent = "Save Orders";
+
+    if (res && res.ok) {
+      const d = await res.json();
+      toast(d.message, "success");
+      document.getElementById("last-saved").textContent = `Saved at ${new Date().toLocaleTimeString()}`;
+      await loadGrid();
+    } else {
+      toast("Save failed. Try again.", "error");
+    }
+  }
+
+  // ── Distributors CRUD ───────────────────────────────────────────────────
+  async function loadDists() {
+    const res = await apiFetch("/distributors");
+    if (!res) return;
+    const dists = await res.json();
+    const tbody = document.getElementById("dist-tbody");
+    tbody.innerHTML = dists.map(d => `
+      <tr>
+        <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px">${d.code}</code></td>
+        <td>${d.name}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick='editDist(${d.id},"${d.code}","${d.name.replace(/"/g,"&quot;")}")'>Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDist(${d.id})">Remove</button>
+        </td>
+      </tr>`).join("");
+  }
+
+  function editDist(id, code, name) {
+    document.getElementById("dist-edit-id").value  = id;
+    document.getElementById("dist-code").value     = code;
+    document.getElementById("dist-name").value     = name;
+    document.getElementById("dist-modal-title").textContent = "Edit Distributor";
+    openModal("modal-dist");
+  }
+
+  async function saveDist() {
+    const id   = document.getElementById("dist-edit-id").value;
+    const code = document.getElementById("dist-code").value.trim();
+    const name = document.getElementById("dist-name").value.trim();
+    if (!code || !name) { toast("Code and name required.", "error"); return; }
+
+    const res = await apiFetch(id ? `/distributors/${id}` : "/distributors", {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify({ code, name })
+    });
+    if (res && res.ok) {
+      toast(id ? "Distributor updated." : "Distributor added.", "success");
+      closeModal("modal-dist");
+      document.getElementById("dist-edit-id").value = "";
+      document.getElementById("dist-code").value    = "";
+      document.getElementById("dist-name").value    = "";
+      document.getElementById("dist-modal-title").textContent = "Add Distributor";
+      loadDists();
+    } else {
+      toast("Failed to save.", "error");
+    }
+  }
+
+  async function deleteDist(id) {
+    if (!confirm("Deactivate this distributor?")) return;
+    const res = await apiFetch(`/distributors/${id}`, { method: "DELETE" });
+    if (res && res.ok) { toast("Distributor removed.", "info"); loadDists(); }
+  }
+
+  // ── Products CRUD ───────────────────────────────────────────────────────
+  async function loadSkus() {
+    const res = await apiFetch("/products");
+    if (!res) return;
+    const prods = await res.json();
+    const tbody = document.getElementById("sku-tbody");
+    tbody.innerHTML = prods.map(p => `
+      <tr>
+        <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px">${p.code}</code></td>
+        <td>${p.name}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick='editSku(${p.id},"${p.code}","${p.name.replace(/"/g,"&quot;")}")'>Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSku(${p.id})">Remove</button>
+        </td>
+      </tr>`).join("");
+  }
+
+  function editSku(id, code, name) {
+    document.getElementById("sku-edit-id").value  = id;
+    document.getElementById("sku-code").value     = code;
+    document.getElementById("sku-name").value     = name;
+    document.getElementById("sku-modal-title").textContent = "Edit Product";
+    openModal("modal-sku");
+  }
+
+  async function saveSku() {
+    const id   = document.getElementById("sku-edit-id").value;
+    const code = document.getElementById("sku-code").value.trim();
+    const name = document.getElementById("sku-name").value.trim();
+    if (!code || !name) { toast("Code and name required.", "error"); return; }
+
+    const res = await apiFetch(id ? `/products/${id}` : "/products", {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify({ code, name })
+    });
+    if (res && res.ok) {
+      toast(id ? "Product updated." : "Product added.", "success");
+      closeModal("modal-sku");
+      document.getElementById("sku-edit-id").value = "";
+      document.getElementById("sku-code").value    = "";
+      document.getElementById("sku-name").value    = "";
+      document.getElementById("sku-modal-title").textContent = "Add Product";
+      loadSkus();
+    } else {
+      toast("Failed to save.", "error");
+    }
+  }
+
+  async function deleteSku(id) {
+    if (!confirm("Deactivate this product?")) return;
+    const res = await apiFetch(`/products/${id}`, { method: "DELETE" });
+    if (res && res.ok) { toast("Product removed.", "info"); loadSkus(); }
+  }
+
+  // ── Export ──────────────────────────────────────────────────────────────
+  async function exportOrders() {
+    const date = document.getElementById("export-date").value;
+    const token = getToken();
+    const url = `${API}/orders/export?order_date=${date}`;
+    const a = document.createElement("a");
+    a.href = url + `&token=${token}`;
+
+    // Use fetch to download with auth header
+    const res = await apiFetch(`/orders/export?order_date=${date}`);
+    if (!res || !res.ok) { toast("Export failed.", "error"); return; }
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objUrl;
+    link.download = `orders_${date}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(objUrl);
+    toast("Download started!", "success");
+  }
+
+  // ── History ─────────────────────────────────────────────────────────────────
+  async function loadHistory() {
+    const date = document.getElementById("history-date").value;
+    if (!date) { toast("Select a date first.", "error"); return; }
+    const tbody = document.getElementById("history-tbody");
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</td></tr>`;
+    const res = await apiFetch(`/orders/history?order_date=${date}`);
+    if (!res) return;
+    const rows = await res.json();
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">No changes recorded for this date.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const time = new Date(r.changed_at).toLocaleString();
+      const oldQty = r.old_quantity != null ? r.old_quantity : '—';
+      const badge = r.action === 'created'
+        ? `<span class="badge badge-sales">new</span>`
+        : `<span class="badge badge-admin">edited</span>`;
+      return `<tr>
+        <td style="white-space:nowrap;font-size:12px">${time}</td>
+        <td><div style="font-size:13px">${r.product_name}</div><div class="sku-code">${r.product_code}</div></td>
+        <td><div style="font-size:13px">${r.dist_name}</div><div class="sku-code">${r.dist_code}</div></td>
+        <td style="text-align:center;color:var(--text-muted)">${oldQty}</td>
+        <td style="text-align:center;font-weight:600;color:var(--primary)">${r.new_quantity}</td>
+        <td>${r.changed_by_name}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── User Assignments ─────────────────────────────────────────────────────────
+  let allDistributors = [];
+
+  async function loadUsers() {
+    const [usersRes, distsRes] = await Promise.all([apiFetch("/users"), apiFetch("/distributors")]);
+    if (!usersRes || !distsRes) return;
+    const users = await usersRes.json();
+    allDistributors = await distsRes.json();
+
+    const tbody = document.getElementById("users-tbody");
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${u.name}</strong></td>
+        <td style="color:var(--text-muted);font-size:12px">${u.email}</td>
+        <td id="dist-count-${u.id}" style="color:var(--text-muted);font-size:12px">—</td>
+        <td><button class="btn btn-outline btn-sm" onclick='openAssignModal(${u.id},"${u.name}")'>Assign</button></td>
+      </tr>`).join("");
+
+    users.forEach(u => refreshDistCount(u.id));
+  }
+
+  async function refreshDistCount(userId) {
+    const res = await apiFetch(`/users/${userId}/distributors`);
+    if (!res) return;
+    const ids = await res.json();
+    const el = document.getElementById(`dist-count-${userId}`);
+    if (el) el.textContent = ids.length ? `${ids.length} assigned` : 'None assigned';
+  }
+
+  async function openAssignModal(userId, userName) {
+    document.getElementById("assign-user-id").value = userId;
+    document.getElementById("assign-user-name").textContent = userName;
+    const res = await apiFetch(`/users/${userId}/distributors`);
+    if (!res) return;
+    const assignedIds = new Set(await res.json());
+
+    document.getElementById("assign-checklist").innerHTML = allDistributors.map(d => `
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:6px 4px;border-radius:4px">
+        <input type="checkbox" value="${d.id}" ${assignedIds.has(d.id) ? 'checked' : ''} style="width:15px;height:15px">
+        <span style="font-size:13px">${d.name} <span style="color:var(--text-muted);font-size:11px">[${d.code}]</span></span>
+      </label>`).join("");
+
+    openModal("modal-assign");
+  }
+
+  async function saveAssignment() {
+    const userId = document.getElementById("assign-user-id").value;
+    const checked = document.querySelectorAll("#assign-checklist input[type=checkbox]:checked");
+    const dist_ids = [...checked].map(cb => parseInt(cb.value));
+    const res = await apiFetch(`/users/${userId}/distributors`, {
+      method: "PUT",
+      body: JSON.stringify({ dist_ids })
+    });
+    if (res && res.ok) {
+      toast("Assignments saved.", "success");
+      closeModal("modal-assign");
+      loadUsers();
+    } else {
+      toast("Failed to save assignments.", "error");
+    }
+  }
+
+  // Start
+  init();
+</script>
+</body>
+</html>
